@@ -1735,4 +1735,31 @@ fn foo(value: usize) ${0:-> _} {
 ",
         )
     }
+
+    #[test]
+    fn prepend_async_if_impl_future() {
+        check_assist(
+            generate_function,
+            r"
+use std::future::Future;
+fn expect_future<T>(t: T) where T: Future { }
+
+fn main() {
+    expect_future($0foo());
+}
+",
+            r"
+use std::future::Future;
+fn expect_future<T>(t: T) where T: Future { }
+
+fn main() {
+    expect_future(foo());
+}
+
+async fn foo() ${0:-> _} {
+    todo!()
+}
+",
+        )
+    }
 }
