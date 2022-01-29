@@ -1121,4 +1121,43 @@ struct Foo;
 "#,
         );
     }
+
+    #[test]
+    fn import_macro_instead_of_crate() {
+        check_assist(
+            auto_import,
+            r#"
+//- /main.rs crate:main deps:alloc
+#![no_std]
+use alloc::vec::Vec;
+
+fn main() {
+    let _ = Vec;
+    $0vec!();
+}
+
+//- /alloc.rs crate:alloc
+#![no_std]
+pub mod vec {
+    pub struct Vec<T> {}
+
+    #[macro_export]
+    macro_rules! vec {
+        () => {};
+    }
+}
+"#,
+            r#"
+#![no_std]
+use alloc::vec;
+use alloc::vec::Vec;
+
+fn main() {
+    let _ = Vec;
+    vec!();
+}
+
+"#,
+        );
+    }
 }
