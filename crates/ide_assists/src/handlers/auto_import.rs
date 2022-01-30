@@ -1,3 +1,5 @@
+use hir::ItemInNs;
+use ide_db::helpers::insert_use::ImportGranularity;
 use ide_db::helpers::{
     import_assets::{ImportAssets, ImportCandidate},
     insert_use::{insert_use, ImportScope},
@@ -103,8 +105,6 @@ pub(crate) fn auto_import(acc: &mut Assists, ctx: &AssistContext) -> Option<()> 
         &ctx.sema,
     )?;
 
-    // we aren't interested in different namespaces
-    proposed_imports.dedup_by(|a, b| a.import_path == b.import_path);
     for import in proposed_imports {
         acc.add_group(
             &group_label,
@@ -117,7 +117,15 @@ pub(crate) fn auto_import(acc: &mut Assists, ctx: &AssistContext) -> Option<()> 
                     ImportScope::Module(it) => ImportScope::Module(builder.make_mut(it)),
                     ImportScope::Block(it) => ImportScope::Block(builder.make_mut(it)),
                 };
-                insert_use(&scope, mod_path_to_ast(&import.import_path), &ctx.config.insert_use);
+                let is_macro = matches!(import.original_item, ItemInNs::Macros(_));
+                let cfg = if is_macro {
+                    let mut c = ctx.config.insert_use;
+                    c.granularity = ImportGranularity::Item;
+                    c
+                } else {
+                    ctx.config.insert_use
+                };
+                insert_use(&scope, mod_path_to_ast(&import.import_path), &cfg);
             },
         );
     }
