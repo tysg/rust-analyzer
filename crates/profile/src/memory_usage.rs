@@ -33,6 +33,9 @@ impl MemoryUsage {
                 }
             } else if #[cfg(all(target_os = "linux", target_env = "gnu"))] {
                 memusage_linux()
+            } else if #[cfg(target_os = "macos")] {
+                let bytes_total = unsafe { libc::mstats() }.bytes_total;
+                MemoryUsage { allocated: Bytes(bytes_total as isize) }
             } else if #[cfg(windows)] {
                 // There doesn't seem to be an API for determining heap usage, so we try to
                 // approximate that by using the Commit Charge value.
